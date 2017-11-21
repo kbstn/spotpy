@@ -49,10 +49,36 @@ def bias(evaluation,simulation):
         print("Error: evaluation and simulation lists does not have the same length.")
         return np.nan
 
-        
-def nashsutcliff(evaluation,simulation):   
+
+def pbias(evaluation,simulation):
     """
-    Nash-Sutcliff model efficinecy
+    Procentual Bias
+    
+        .. math::
+        
+         PBias= 100 * \\frac{\\sum_{i=1}^{N}(e_{i}-s_{i})}{\\sum_{i=1}^{N}(e_{i})}
+
+    :evaluation: Observed data to compared with simulation data.
+    :type: list
+    
+    :simulation: simulation data to compared with evaluation data
+    :type: list
+    
+    :return: PBias
+    :rtype: float
+    """    
+    if len(evaluation)==len(simulation):   
+        sim = np.array(simulation)
+        obs = np.array(evaluation)
+        return 100 * (float(np.sum( sim - obs )) / float(np.sum( obs )) )
+
+    else:
+        print("Error: evaluation and simulation lists does not have the same length.")
+        return np.nan
+
+def nashsutcliffe(evaluation,simulation):   
+    """
+    Nash-Sutcliffe model efficinecy
     
         .. math::
 
@@ -83,9 +109,9 @@ def nashsutcliff(evaluation,simulation):
         return np.nan
 
         
-def lognashsutcliff(evaluation,simulation):
+def lognashsutcliffe(evaluation,simulation):
     """
-    log Nash-Sutcliff model efficiency
+    log Nash-Sutcliffe model efficiency
    
         .. math::
 
@@ -108,7 +134,7 @@ def lognashsutcliff(evaluation,simulation):
         return np.nan
         
     
-def log_p(evaluation,simulation,scale=0.1):
+def log_p(evaluation=None,simulation=None,scale=0.1):
     """
     Logarithmic probability distribution
     
@@ -122,7 +148,10 @@ def log_p(evaluation,simulation,scale=0.1):
     :rtype: float
     """ 
     #from scipy import stats    
-    #logLik = np.mean( stats.norm.logpdf(evaluation, loc=simulation, scale=.1) )    
+    #logLik = np.mean( stats.norm.logpdf(evaluation, loc=simulation, scale=.1) )
+    scale = np.mean(evaluation)/10
+    if scale < .01:
+        scale = .01
     if len(evaluation)==len(simulation):
         y        = (np.array(evaluation)-np.array(simulation))/scale
         normpdf = -y**2 / 2 - np.log(np.sqrt(2*np.pi))
@@ -228,10 +257,10 @@ def rmse(evaluation,simulation):
     :return: Root Mean Squared Error
     :rtype: float
     """
-    if len(evaluation)==len(simulation):
+    if len(evaluation)==len(simulation)>0:
         return np.sqrt(mse(evaluation,simulation))
     else:
-        print("Error: evaluation and simulation lists does not have the same length.")    
+        print("Error: evaluation and simulation lists do not have the same length.")    
         return np.nan
 
 def mae(evaluation,simulation):
@@ -251,7 +280,7 @@ def mae(evaluation,simulation):
     :return: Mean Absolute Error
     :rtype: float
     """
-    if len(evaluation)==len(simulation):
+    if len(evaluation)==len(simulation)>0:
         
         MAE_values=[]
                 
@@ -287,7 +316,7 @@ def rrmse(evaluation,simulation):
     
     if len(evaluation)==len(simulation):
 
-        RRMSE = rmse(evaluation,simulation)/np.mean(simulation)
+        RRMSE = rmse(evaluation,simulation)/np.mean(evaluation)
         return RRMSE
         
     else:
@@ -379,7 +408,55 @@ def decomposed_mse(evaluation,simulation):
     else:
         print("Error: evaluation and simulation lists does not have the same length.")
         return np.nan
-        
+
+def kge(evaluation,simulation, return_all=False):
+    """
+    Kling-Gupta Efficiency
+    
+    Corresponding paper: 
+    Gupta, Kling, Yilmaz, Martinez, 2009, Decomposition of the mean squared error and NSE performance criteria: Implications for improving hydrological modelling
+    
+    output:
+        kge: Kling-Gupta Efficiency
+    optional_output:
+        cc: correlation 
+        alpha: ratio of the standard deviation
+        beta: ratio of the mean
+    """
+    if len(evaluation)==len(simulation):
+        cc    = np.corrcoef(evaluation,simulation)[0,1]
+        alpha = np.std(simulation)/np.std(evaluation)
+        beta  = np.sum(simulation)/np.sum(evaluation)
+        kge   = 1- np.sqrt( (cc-1)**2 + (alpha-1)**2 + (beta-1)**2 )
+        if return_all:
+            return kge, cc, alpha, beta
+        else:
+            return kge
+    else:
+        print("Error: evaluation and simulation lists does not have the same length.")
+        return np.nan
+    
+    
+def rsr(evaluation,simulation):
+    """
+    RMSE-observations standard deviation ratio 
+    
+    Corresponding paper: 
+    Moriasi, Arnold, Van Liew, Bingner, Harmel, Veith, 2007, Model Evaluation Guidelines for Systematic Quantification of Accuracy in Watershed Simulations
+    
+    output:
+        rsr: RMSE-observations standard deviation ratio 
+    """
+    if len(evaluation)==len(simulation):
+        rsme_temp = rsme(evaluation, simulation)
+        std = _standarddeviation(evaluation)
+        rsr = rsme_temp / std
+        return rsr        
+    else:
+        print("Error: evaluation and simulation lists does not have the same length.")
+        return np.nan
+    
+
 def _variance(evaluation):
     """
     Variance
